@@ -6,6 +6,7 @@
 # Author of player's graphics - Clint Bellanger - https://opengameart.org/users/clint-bellanger
 
 import pygame
+import random
 from settings import *
 
 # Loading vector from pygame library
@@ -13,6 +14,7 @@ vec = pygame.math.Vector2
 
 def collide_hit_rect(one, two):
 	return one.hit_rect.colliderect(two.rect)
+
 
 class Spritesheet:
 	"""Class using to load specific image from spritesheet."""
@@ -39,6 +41,7 @@ class Player(pygame.sprite.DirtySprite):
 		"""Initialization."""
 
 		self.groups = game.all_sprites
+		# self.layers = game.layer_01
 		pygame.sprite.DirtySprite.__init__(self, self.groups)
 		self.game = game
 
@@ -57,6 +60,7 @@ class Player(pygame.sprite.DirtySprite):
 		self.image = self.behaviour_img["stand"][self.direction][0]
 		self.rect = self.image.get_rect()
 		self.hit_rect = PLAYER_HIT_RECT
+		# self.source_rect = self.hit_rect
 
 
 		self.vel = vec(0, 0)
@@ -217,6 +221,215 @@ class Player(pygame.sprite.DirtySprite):
 		self.behaviour_animation(now, 200, "shoot")
 
 
+
+
+
+
+
+class Skeleton(pygame.sprite.DirtySprite):
+	"""Skeleton class"""
+
+	def __init__(self, game, x, y):
+		"""Initialization."""
+
+		self.groups = game.all_sprites, game.mobs
+		pygame.sprite.DirtySprite.__init__(self, self.groups)
+		self.game = game
+
+		self.behaviours = {}
+		self.behaviour_init()
+		
+		self.direction = 6
+		# self.directions = ["l", "ul", "u", "ur", "r", "dr", "d", "dl" ] 
+		# l - left, ul - upper-left, u - up, ur - upper-right, r - right, dr - down-right, d - down, dl - down-left
+
+		self.current_frame = 0
+		self.last_update = 0
+		self.last_move_update = 0
+		self.behaviour_img = {}
+		self.load_images()
+
+		self.image = self.behaviour_img["stand"][self.direction][0]
+		self.rect = self.image.get_rect()
+		self.hit_rect = SKELETON_HIT_RECT
+		# self.source_rect = self.hit_rect
+
+
+		self.vel = vec(0, 0)
+		self.pos = vec(x, y) * TILESIZE
+
+	def load_images(self):
+
+		self.behaviour_img["stand"] = [[self.game.skeletonsheet.get_image(x * IMG_SIZE, row * IMG_SIZE, IMG_SIZE, IMG_SIZE) for x in range(0, 4)] for row in range(8)]
+		self.behaviour_img["walk"] = [[self.game.skeletonsheet.get_image(x * IMG_SIZE, row * IMG_SIZE, IMG_SIZE, IMG_SIZE) for x in range(4, 12)] for row in range(8)]
+		self.behaviour_img["fight"] = [[self.game.skeletonsheet.get_image(x * IMG_SIZE, row * IMG_SIZE, IMG_SIZE, IMG_SIZE) for x in range(12, 16)] for row in range(8)]
+		self.behaviour_img["cast"] = [[self.game.skeletonsheet.get_image(x * IMG_SIZE, row * IMG_SIZE, IMG_SIZE, IMG_SIZE) for x in range(16, 20)] for row in range(8)]
+		self.behaviour_img["block"] = [[self.game.skeletonsheet.get_image(x * IMG_SIZE, row * IMG_SIZE, IMG_SIZE, IMG_SIZE) for x in range(20, 22)] for row in range(8)]
+		self.behaviour_img["death"] = [[self.game.skeletonsheet.get_image(x * IMG_SIZE, row * IMG_SIZE, IMG_SIZE, IMG_SIZE) for x in range(22, 28)] for row in range(8)]
+		self.behaviour_img["shoot"] = [[self.game.skeletonsheet.get_image(x * IMG_SIZE, row * IMG_SIZE, IMG_SIZE, IMG_SIZE) for x in range(28, 32)] for row in range(8)]
+
+	def behaviour_init(self):
+
+		self.behaviours["stand"] = True 
+		self.behaviours["walk"] = False
+		self.behaviours["fight"] = False
+		self.behaviours["block"] = False
+		self.behaviours["death"] = False
+		self.behaviours["cast"] = False
+		self.behaviours["shoot"] = False
+
+	def move(self):
+		"""Player's sprite reaction in case of keyboard event."""
+		now = pygame.time.get_ticks()
+			
+		if now - self.last_move_update > 1000:
+			
+			self.last_move_update = now
+			self.behaviour_init()
+			self.vel.x, self.vel.y = 0, 0
+			self.direction = random.randint(0, 7)
+
+			if self.direction == 2:
+				self.vel.y = -SKELETON_SPEED
+				self.behaviours["walk"] = True
+
+			if self.direction == 6:
+				self.vel.y = SKELETON_SPEED
+				self.behaviours["walk"] = True
+
+			if self.direction == 0:
+				self.vel.x = -SKELETON_SPEED 
+				self.behaviours["walk"] = True
+
+			if self.direction == 1:
+				self.vel.x = -SKELETON_SPEED
+				self.vel.y = -SKELETON_SPEED 
+				self.behaviours["walk"] = True
+
+			if self.direction == 7:
+				self.vel.x = -SKELETON_SPEED
+				self.vel.y = SKELETON_SPEED 
+				self.behaviours["walk"] = True			
+
+			if self.direction == 4:
+				self.vel.x = SKELETON_SPEED
+				self.behaviours["walk"] = True
+
+
+			if self.direction == 3:
+				self.vel.x = SKELETON_SPEED
+				self.vel.y = -SKELETON_SPEED 
+				self.behaviours["walk"] = True	
+
+			if self.direction == 5:
+				self.vel.x = SKELETON_SPEED
+				self.vel.y = SKELETON_SPEED 
+				self.behaviours["walk"] = True	
+
+			if self.vel.x != 0 and self.vel.y != 0:
+				self.vel *= 0.7071
+
+			if 	(self.behaviours["walk"] != False or
+				self.behaviours["fight"] != False or
+				self.behaviours["block"] != False or
+				self.behaviours["death"] != False or
+				self.behaviours["cast"] != False or
+				self.behaviours["shoot"] != False):
+					self.behaviours["stand"] = False
+
+	def attack(self):
+
+		if self.hit_rect.colliderect(self.game.player.hit_rect):
+
+			self.last_move_update = pygame.time.get_ticks()
+			self.vel.x, self.vel.y = 0, 0
+
+			if self.game.player.pos.x > self.pos.x:
+				self.direction = 4
+
+				if self.game.player.pos.y > self.pos.y:
+					self.direction = 5
+
+				if self.game.player.pos.y < self.pos.y:
+					self.direction = 3
+
+			if self.game.player.pos.x < self.pos.x:
+				self.direction = 0
+
+				if self.game.player.pos.y > self.pos.y:
+					self.direction = 7
+
+				if self.game.player.pos.y < self.pos.y:
+					self.direction = 1
+
+			if self.game.player.pos.y > self.pos.y:
+				self.direction = 6
+
+			if self.game.player.pos.y < self.pos.y:
+				self.direction = 2
+
+			self.behaviours["walk"] = False
+			self.behaviours["fight"] = True
+
+
+	def collide_with_walls(self, dir):
+		"""Skeleton's sprite reaction to collide, depending on skeletons's sprite move direction."""
+
+		if dir == 'x':
+			hits = pygame.sprite.spritecollide(self, self.game.walls, False, collide_hit_rect)
+			if hits:
+				if self.vel.x > 0:
+					self.pos.x = hits[0].rect.left - self.hit_rect.width / 2
+				if self.vel.x < 0:
+					self.pos.x = hits[0].rect.right + self.hit_rect.width / 2
+				self.vel.x = 0
+				self.hit_rect.centerx = self.pos.x
+		if dir == 'y':
+			hits = pygame.sprite.spritecollide(self, self.game.walls, False, collide_hit_rect)
+			if hits:
+				if self.vel.y > 0:
+					self.pos.y = hits[0].rect.top - self.hit_rect.height / 2
+				if self.vel.y < 0:
+					self.pos.y = hits[0].rect.bottom + self.hit_rect.height / 2
+				self.vel.y = 0
+				self.hit_rect.centery = self.pos.y
+
+
+	def update(self):
+		"""Override function using to update skeletons's spirit"""
+		
+		self.move()
+		self.attack()
+		self.animate()
+		self.pos += self.vel * self.game.dt
+		self.hit_rect.centerx = self.pos.x
+		self.collide_with_walls('x')
+		self.hit_rect.centery = self.pos.y
+		self.collide_with_walls('y')
+		self.rect.center = self.hit_rect.center - vec(0, 10)
+
+
+	def behaviour_animation(self, now, refresh_rate, behaviour):
+		if self.behaviours[behaviour]:
+			if now - self.last_update > refresh_rate:
+				self.last_update = now
+				self.current_frame = (self.current_frame + 1) % len(self.behaviour_img[behaviour][self.direction])
+				self.image = self.behaviour_img[behaviour][self.direction][self.current_frame]
+				self.rect = self.image.get_rect()
+				self.rect.center = self.hit_rect.center - vec(0, 10)
+
+
+	def animate(self):
+		now = pygame.time.get_ticks()
+		self.behaviour_animation(now, 150, "stand")
+		self.behaviour_animation(now, 80, "walk")
+		self.behaviour_animation(now, 100, "fight")
+		self.behaviour_animation(now, 200, "cast")
+		self.behaviour_animation(now, 200, "block")
+		self.behaviour_animation(now, 100, "death")
+		self.behaviour_animation(now, 200, "shoot")
+
+
 class Wall(pygame.sprite.Sprite):
 	"""Class using to create walls."""
 
@@ -250,7 +463,5 @@ class Background(pygame.sprite.Sprite):
 		self.rect.x = x * TILESIZE
 		self.rect.y = y * TILESIZE
 
-		print(len(self.background))
-		print(len(self.background[0]))
 
 

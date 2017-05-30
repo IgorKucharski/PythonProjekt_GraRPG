@@ -37,3 +37,9 @@ PLAYER_SPEED = 250
 PLAYER_IMG = 'warrior_sprite.png'
 IMG_SIZE = 128
 PLAYER_HIT_RECT = pygame.Rect(0, 0, 32, 48)
+
+# Skeleton settings
+SKELETON_IMG = 'skeleton_sprite.png'
+SKELETON_SPEED = 200
+SKELETON_HIT_RECT = pygame.Rect(0, 0, 42, 58)
+

@@ -36,13 +36,17 @@ class Game:
 		self.map = Map(path.join(self.game_folder, 'map2.txt'))		
 		self.playersheet = Spritesheet(path.join(img_folder, PLAYER_IMG))
 		self.terrainsheet = Spritesheet(path.join(img_folder, TERRAIN_IMG))
+		self.skeletonsheet = Spritesheet(path.join(img_folder, SKELETON_IMG))
 		
 	def new(self):
 		"""Start a new game."""
 		
 		self.all_sprites = pygame.sprite.Group()
+
 		self.walls = pygame.sprite.Group()
 		self.backgrounds = pygame.sprite.Group()
+		self.mobs = pygame.sprite.Group()
+		# self.layer_01 = pygame.sprite.LayeredUpdates()
 		
 		for row, tiles in enumerate(self.map.data):
 			for col, tile in enumerate(tiles):
@@ -50,9 +54,18 @@ class Game:
 					Wall(self, col, row)
 				if tile == 'P':
 					self.player = Player(self, col, row)
-		for x in range(16):
-			for y  in range (16):			
-				Background(self, x+2, y+2, x, y)
+					self.player_group = pygame.sprite.GroupSingle(self.player)
+		# for x in range(16):
+		# 	for y  in range (16):			
+		# 		Background(self, x+2, y+2, x, y)
+
+		# for sprite in self.all_sprites:
+		# 	print(sprite.get_layer_of_sprite())
+		# self.layer_01.move_to_front(self.player)
+
+		Skeleton(self, 10, 10)
+
+
 
 		self.camera = Camera(self.map.width, self.map.height)
 		self.run()
@@ -105,9 +118,12 @@ class Game:
 		# self.draw_grid()
 		for sprite in self.all_sprites:
 			self.screen.blit(sprite.image, self.camera.apply(sprite))
-		# pygame.draw.rect(self.screen, BLUE, self.player.hit_rect, 2)
+		pygame.draw.rect(self.screen, BLUE, self.player.hit_rect, 2)
+		for sprite in self.mobs:
+			pygame.draw.rect(self.screen, BLUE, sprite.rect, 2)
+			pygame.draw.rect(self.screen, BLUE, sprite.hit_rect, 2)
 		# pygame.draw.rect(self.screen, BLUE, self.player.bounding_rect, 2)
-		# pygame.draw.rect(self.screen, BLUE, self.camera.apply(self.player), 2)
+		pygame.draw.rect(self.screen, BLUE, self.camera.apply(self.player), 2)
 		pygame.display.flip()
 		
 	def show_start_screen(self):
